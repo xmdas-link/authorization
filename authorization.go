@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,7 @@ type BasicAuthorizer struct {
 
 func (authorize *BasicAuthorizer) GetUserName(ctx *gin.Context) string {
 	user := ctx.GetStringMapString(auth.CtxKeyAuthUser)
-	if username, ok := user["name"]; ok {
+	if username, ok := user["user"]; ok {
 		return username
 	}
 
@@ -40,14 +41,24 @@ func (authorize *BasicAuthorizer) GetUserRole(ctx *gin.Context) string {
 }
 
 func (authorize *BasicAuthorizer) RequirePermission(ctx *gin.Context) {
-	ctx.AbortWithStatus(403)
+	ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+		"code":    0,
+		"message": "没有权限",
+	})
 }
 
 func (authorize *BasicAuthorizer) CheckPermission(ctx *gin.Context) bool {
-	obj := ctx.Request.URL.Path
 	sub := authorize.GetUserName(ctx)
+	sub2 := authorize.GetUserRole(ctx)
+	obj := ctx.Request.URL.Path
 	act := ctx.Request.Method
 
 	allowed, _ := authorize.enforcer.Enforce(sub, obj, act)
+	log.Printf("casbin check permission, sub:%v, obj:%v, act:%v, allowed:%v", sub, obj, act, allowed)
+	if !allowed { // 用户没有权限，判断角色权限
+		allowed, _ = authorize.enforcer.Enforce(sub2, obj, act)
+		log.Printf("casbin check permission, sub2:%v, obj:%v, act:%v, allowed:%v", sub2, obj, act, allowed)
+	}
+
 	return allowed
 }
