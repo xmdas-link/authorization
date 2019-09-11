@@ -1,9 +1,11 @@
+#p, 用户/角色/其他用于判断的字符串, API的URI, GET或者POST或者全部, 允许/拒绝
 p, user, /school/list, (GET)|(POST), allow
 p, admin, /school/add, (GET)|(POST), allow
 p, alice, /person/list, (GET)|(POST), allow
 p, alice, /person/add, (GET)|(POST), allow
 p, bob, /school/list, (GET)|(POST), deny
 
+#g, 用户/角色, 上级角色
 g, alice, admin
 g, bob, admin
 g, foo, user
