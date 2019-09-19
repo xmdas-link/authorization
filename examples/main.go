@@ -2,9 +2,7 @@ package main
 
 import (
 	"github.com/casbin/casbin/v2"
-	gormadapter "github.com/casbin/gorm-adapter/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/xmdas-link/authorization"
 )
@@ -43,22 +41,25 @@ var enforcer *casbin.Enforcer
 func main() {
 	route := gin.Default()
 
-	// load policy from db
-	db, _ := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:33306)/approval?parseTime=true&loc=Local")
-	db.LogMode(true)
-	adapter, _ := gormadapter.NewAdapterByDB(db)
-	enforcer, _ = casbin.NewEnforcer("model.conf", adapter)
-	// dynamic add policy
-	enforcer.AddPolicy("alice", "/school/list", "(GET)|(POST)", "allow")
-	enforcer.AddPolicy("user", "/school/add", "(GET)|(POST)", "allow")
-	// dynamic add group relationship
-	enforcer.AddGroupingPolicy("alice", "user")
-	enforcer.AddGroupingPolicy("bob", "user")
+	//// load policy from db
+	//db, _ := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:33306)/approval?parseTime=true&loc=Local")
+	//db.LogMode(true)
+	//adapter, _ := gormadapter.NewAdapterByDB(db)
+	//enforcer, _ = casbin.NewEnforcer("model.conf", adapter)
+	//// dynamic add policy
+	//enforcer.AddPolicy("alice", "/school/list", "(GET)|(POST)", "allow")
+	//enforcer.AddPolicy("user", "/school/add", "(GET)|(POST)", "allow")
+	//// dynamic add group relationship
+	//enforcer.AddGroupingPolicy("alice", "user")
+	//enforcer.AddGroupingPolicy("bob", "user")
 
 	// load policy from file
 	//enforcer, _ = casbin.NewEnforcer("model.conf", "policy.csv")
+	//route.Use(authorization.NewAuthorizer(enforcer))
 
-	route.Use(authorization.NewAuthorizer(enforcer))
+	// load domain policy from file
+	enforcer, _ = casbin.NewEnforcer("model_domain.conf", "policy_domain.csv")
+	route.Use(authorization.NewAuthorizer(enforcer, true))
 
 	route.GET("/", helloHandler)
 	route.GET("/school/list", getSchool)
