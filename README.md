@@ -11,7 +11,8 @@ route := gin.Default()
 
 // 从策略文件加载策略规则
 enforcer, _ = casbin.NewEnforcer("model.conf", "policy.csv")
-route.Use(authorization.NewAuthorizer(enforcer))
+route.Use(authorization.NewAuthorizer(enforcer, nil)) // 非多租户模式
+route.Use(authorization.NewAuthorizer(enforcer, nil, true)) // 支持多租户模式
 
 // 从数据库加载策略规则，动态加载更新策略
 db, _ := gorm.Open("mysql", "root:123456@tcp(127.0.0.1:33306)/approval?parseTime=true&loc=Local")
@@ -56,3 +57,16 @@ g, bob, admin
 g, foo, user
 g, admin, user
 ```
+## 自定义从CONTEXT获取用户/角色/域方法
+默认使用GIN的CONTEXT，用户/角色/域的默认KEY使用
+[auth](https://github.com/xmdas-link/auth)组件定义  
+接口定义
+```go
+type Authorizer interface {
+	GetUserNameFromContext(context interface{}) string
+	GetUserRoleFromContext(context interface{}) string
+	GetUserDomainFromContext(context interface{}) string
+}
+```
+只要实现Authorizer接口并传入authorization.NewAuthorizer(enforcer, nil)
+第二个参数即可

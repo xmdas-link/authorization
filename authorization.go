@@ -6,15 +6,18 @@ import (
 
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
-	"github.com/xmdas-link/auth"
 )
 
-func NewAuthorizer(enforcer *casbin.Enforcer, args ...bool) gin.HandlerFunc {
+func NewAuthorizer(enforcer *casbin.Enforcer, a Authorizer, args ...bool) gin.HandlerFunc {
 	var withDomains = false
 	if len(args) > 0 {
 		withDomains = args[0]
 	}
-	authorizer := &BasicAuthorizer{enforcer, withDomains}
+
+	if a == nil {
+		a = DefaultGinAuthorize{}
+	}
+	authorizer := &BasicAuthorizer{enforcer, withDomains, a}
 
 	return func(context *gin.Context) {
 		// apply authorizer
@@ -29,29 +32,19 @@ func NewAuthorizer(enforcer *casbin.Enforcer, args ...bool) gin.HandlerFunc {
 type BasicAuthorizer struct {
 	enforcer    *casbin.Enforcer
 	withDomains bool
+	authorizer  Authorizer
 }
 
 func (authorize *BasicAuthorizer) GetUserName(ctx *gin.Context) string {
-	user := ctx.GetStringMapString(auth.CtxKeyAuthUser)
-	if username, ok := user["user"]; ok {
-		return username
-	}
-
-	return ""
+	return authorize.authorizer.GetUserNameFromContext(ctx)
 }
 
 func (authorize *BasicAuthorizer) GetUserRole(ctx *gin.Context) string {
-	userRole := ctx.GetString(auth.CtxKeyUserRole)
-	return userRole
+	return authorize.authorizer.GetUserRoleFromContext(ctx)
 }
 
 func (authorize *BasicAuthorizer) GetUserDomain(ctx *gin.Context) string {
-	user := ctx.GetStringMapString(auth.CtxKeyAuthUser)
-	if domain, ok := user["domain"]; ok {
-		return domain
-	}
-
-	return ""
+	return authorize.authorizer.GetUserDomainFromContext(ctx)
 }
 
 func (authorize *BasicAuthorizer) RequirePermission(ctx *gin.Context) {

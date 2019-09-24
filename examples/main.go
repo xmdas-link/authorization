@@ -38,6 +38,33 @@ http://127.0.0.1:8080/school/list?mobile=123&username=foo
 
 var enforcer *casbin.Enforcer
 
+type queryAuthorizer struct {
+}
+
+func (queryAuthorizer) GetUserNameFromContext(ctx interface{}) string {
+	if ctx, ok := ctx.(*gin.Context); ok {
+		return ctx.Query("username")
+	}
+
+	return ""
+}
+
+func (queryAuthorizer) GetUserRoleFromContext(ctx interface{}) string {
+	if ctx, ok := ctx.(*gin.Context); ok {
+		return ctx.Query("role")
+	}
+
+	return ""
+}
+
+func (queryAuthorizer) GetUserDomainFromContext(ctx interface{}) string {
+	if ctx, ok := ctx.(*gin.Context); ok {
+		return ctx.Query("domain")
+	}
+
+	return ""
+}
+
 func main() {
 	route := gin.Default()
 
@@ -59,7 +86,8 @@ func main() {
 
 	// load domain policy from file
 	enforcer, _ = casbin.NewEnforcer("model_domain.conf", "policy_domain.csv")
-	route.Use(authorization.NewAuthorizer(enforcer, true))
+	//route.Use(authorization.NewAuthorizer(enforcer, nil, true))
+	route.Use(authorization.NewAuthorizer(enforcer, queryAuthorizer{}, true))
 
 	route.GET("/", helloHandler)
 	route.GET("/school/list", getSchool)
